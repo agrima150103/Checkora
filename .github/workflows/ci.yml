@@ -77,6 +77,8 @@ jobs:
   compile-engine:
     name: ⚙️ Compile C++ Engine
     runs-on: ubuntu-latest
+    outputs:
+     engine_exists: ${{ steps.check_cpp.outputs.exists }}
 
     steps:
       - name: 📥 Checkout code
@@ -145,12 +147,14 @@ jobs:
           pip install -r requirements.txt
 
       - name: 📥 Download compiled engine binary
-        uses: actions/download-artifact@v4
+        if: needs.compile-engine.outputs.engine_exists == 'true'
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
         with:
           name: engine-binary-${{ github.sha }}
           path: game/engine/
       
       - name: 🔧 Mark engine binary as executable
+        if: needs.compile-engine.outputs.engine_exists == 'true'
         run: chmod +x game/engine/main
 
       - name: 🧪 Run Django test suite
