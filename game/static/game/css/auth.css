@@ -330,13 +330,21 @@ body.login-page .helptext {
 .password-checklist {
     list-style: none;
     padding: 0;
-    margin: 8px 0 0 0;
+    margin: 0;
     font-size: 0.8rem;
     color: #6a6a8a;
-    opacity: 1;
-    max-height: 120px;
+    opacity: 0;
+    max-height: 0;
     overflow: hidden;
+    pointer-events: none;
     transition: opacity 0.4s ease, max-height 0.4s ease, margin 0.4s ease;
+}
+
+.password-checklist.is-visible {
+    opacity: 1;
+    max-height: 140px;
+    margin: 8px 0 0 0;
+    pointer-events: auto;
 }
 .password-checklist li {
     display: flex;

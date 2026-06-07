@@ -30,27 +30,32 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ── Inject toggle into every password field ── */
   document.querySelectorAll('input[type="password"]').forEach((input, i) => {
     if (!input.id) input.id = "pw-field-" + i;
-    // This checks if the field name contains 'confirm' or '2' (standard Django naming)
-    if (input.name.includes("confirm") || input.name.includes("2")|| input.id.includes("confirm")) {
+
+    // Block paste in confirm password fields
+    if (
+      input.name.includes("confirm") ||
+      input.name.includes("2") ||
+      input.id.includes("confirm")
+    ) {
       input.addEventListener("paste", (e) => {
         e.preventDefault();
+
         const msg = document.createElement("div");
         msg.setAttribute("role", "alert");
         msg.className = "paste-block-msg";
         msg.textContent = "For security, please type your password manually.";
+
         input.parentNode.parentNode.insertBefore(msg, input.parentNode.nextSibling);
+
         setTimeout(() => msg.remove(), 3000);
       });
     }
-    /* Create a wrapper that sits inside .form-group, around the input only.
-       This keeps the toggle button positioned relative to the input,
-       regardless of labels, help-text or error messages around it. */
+
     const wrapper = document.createElement("div");
     wrapper.className = "pw-input-wrapper";
     input.parentNode.insertBefore(wrapper, input);
     wrapper.appendChild(input);
 
-    /* Build toggle button */
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "pw-toggle";
@@ -65,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".auth-card form").forEach((form) => {
     form.addEventListener("submit", () => {
       const btn = form.querySelector('button[type="submit"]');
+
       if (btn && !btn.classList.contains("is-loading")) {
         btn.classList.add("is-loading");
         btn.setAttribute("disabled", "disabled");
@@ -82,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
- /* ── Password validation checklist (register page only) ── */
+  /* ── Password validation checklist (register page only) ── */
   const passwordInput = document.querySelector('input[name="password1"]');
   const emailInput = document.querySelector('input[name="email"]');
   const usernameInput = document.querySelector('input[name="username"]');
@@ -90,51 +96,68 @@ document.addEventListener("DOMContentLoaded", () => {
   if (passwordInput) {
     // Suppress Django's static help_text for the password field to fix fragmented UI
     const formGroup = passwordInput.closest(".form-group");
+
     if (formGroup) {
       const staticHelpText = formGroup.querySelector(".helptext");
       if (staticHelpText) staticHelpText.style.display = "none";
     }
 
-    // Helper to detect substring similarity (ignoring very short strings)
-    // Helper to detect substring similarity (mimicking Django's backend SequenceMatcher)
+    // Helper to detect substring similarity
     const checkSimilarity = (pwd, compareVal) => {
       if (!compareVal || !pwd) return false;
+
       const lowerPwd = pwd.toLowerCase();
       const lowerComp = compareVal.toLowerCase();
 
-      // 1. One-way strict match (e.g., password contains the whole username)
       if (lowerComp.length >= 3 && lowerPwd.includes(lowerComp)) return true;
 
-      // 2. Tokenized checking: Split email/username by special characters and numbers
       const parts = lowerComp.split(/[^a-z0-9]+/);
       for (const part of parts) {
-          // If a chunk of the email is at least 4 chars and exists in the password
-          if (part.length >= 4 && lowerPwd.includes(part)) return true;
+        if (part.length >= 4 && lowerPwd.includes(part)) return true;
       }
 
-      // 3. Reverse substring: Strip special chars from password and check if it's in the email
-      const cleanPwd = lowerPwd.replace(/[^a-z0-9]/g, '');
+      const cleanPwd = lowerPwd.replace(/[^a-z0-9]/g, "");
       if (cleanPwd.length >= 4 && lowerComp.includes(cleanPwd)) return true;
 
       return false;
     };
 
     const rules = [
-      { id: "rule-length", text: "Minimum 8 characters", test: (v) => v.length >= 8 },
-      { id: "rule-upper", text: "At least 1 uppercase letter", test: (v) => /[A-Z]/.test(v) },
-      { id: "rule-number", text: "At least 1 number", test: (v) => /[0-9]/.test(v) },
-      { id: "rule-special", text: "At least 1 special character", test: (v) => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'/`~]/.test(v) },
-      { 
-        id: "rule-similarity", 
-        text: "Cannot be too similar to email or username", 
+      {
+        id: "rule-length",
+        text: "Minimum 8 characters",
+        test: (v) => v.length >= 8,
+      },
+      {
+        id: "rule-upper",
+        text: "At least 1 uppercase letter",
+        test: (v) => /[A-Z]/.test(v),
+      },
+      {
+        id: "rule-number",
+        text: "At least 1 number",
+        test: (v) => /[0-9]/.test(v),
+      },
+      {
+        id: "rule-special",
+        text: "At least 1 special character",
+        test: (v) => /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\;'/`~]/.test(v),
+      },
+      {
+        id: "rule-similarity",
+        text: "Cannot be too similar to email or username",
         test: (v) => {
-            if (!v) return false;
-            // Extract the prefix before the '@' for email comparison
-            const emailPart = emailInput && emailInput.value ? emailInput.value.split('@')[0] : '';
-            const userVal = usernameInput ? usernameInput.value : '';
-            return !checkSimilarity(v, emailPart) && !checkSimilarity(v, userVal);
-        }
-      }
+          if (!v) return false;
+
+          const emailPart =
+            emailInput && emailInput.value ? emailInput.value.split("@")[0] : "";
+          const userVal = usernameInput ? usernameInput.value : "";
+
+          return (
+            !checkSimilarity(v, emailPart) && !checkSimilarity(v, userVal)
+          );
+        },
+      },
     ];
 
     const checklist = document.createElement("ul");
@@ -150,11 +173,26 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Insert checklist after the password input wrapper
-    const wrapper = passwordInput.closest(".pw-input-wrapper") || passwordInput.parentNode;
+    const wrapper =
+      passwordInput.closest(".pw-input-wrapper") || passwordInput.parentNode;
+
     wrapper.parentNode.insertBefore(checklist, wrapper.nextSibling);
 
-// Select the submit button inside the form
-    const formBtn = passwordInput.closest("form").querySelector('button[type="submit"]');
+    const formBtn = passwordInput
+      .closest("form")
+      .querySelector('button[type="submit"]');
+
+    const showChecklist = () => {
+      if (!checklist.classList.contains("all-met")) {
+        checklist.classList.add("is-visible");
+      }
+    };
+
+    const hideChecklistIfEmpty = () => {
+      if (!passwordInput.value.trim()) {
+        checklist.classList.remove("is-visible");
+      }
+    };
 
     // Real-time validation evaluation
     const validatePassword = () => {
@@ -164,38 +202,48 @@ document.addEventListener("DOMContentLoaded", () => {
       rules.forEach((rule) => {
         const li = document.getElementById(rule.id);
         const met = rule.test(value);
+
         li.classList.toggle("met", met);
+
         if (!met) allMet = false;
       });
 
       const isValid = allMet && value.length > 0;
+
       checklist.classList.toggle("all-met", isValid);
-      
-      // CRITICAL PATCH: Disable the submit button if rules are not met
+
+      if (isValid) {
+        checklist.classList.remove("is-visible");
+      }
+
       if (formBtn) {
-          formBtn.disabled = !isValid;
-          formBtn.style.opacity = isValid ? "1" : "0.5";
-          formBtn.style.cursor = isValid ? "pointer" : "not-allowed";
+        formBtn.disabled = !isValid;
+        formBtn.style.opacity = isValid ? "1" : "0.5";
+        formBtn.style.cursor = isValid ? "pointer" : "not-allowed";
       }
     };
 
+    passwordInput.addEventListener("focus", showChecklist);
+    passwordInput.addEventListener("input", showChecklist);
     passwordInput.addEventListener("input", validatePassword);
-    
+    passwordInput.addEventListener("blur", hideChecklistIfEmpty);
+
     // Cross-bind to email and username so the rule evaluates correctly if filled out of order
     if (emailInput) emailInput.addEventListener("input", validatePassword);
     if (usernameInput) usernameInput.addEventListener("input", validatePassword);
 
-    validatePassword(); // Run on initial load (handles autofill/form restoration)
+    validatePassword();
   }
 
   /* ── Auto-dismiss Toast Notifications ── */
-  const toasts = document.querySelectorAll('.toast');
-  toasts.forEach(toast => {
+  const toasts = document.querySelectorAll(".toast");
+
+  toasts.forEach((toast) => {
     // Critical auth errors should stay visible
-    if (!toast.classList.contains('toast-error')) {
+    if (!toast.classList.contains("toast-error")) {
       setTimeout(() => {
-        toast.classList.add('toast-exit');
-        setTimeout(() => toast.remove(), 400); // Wait for animation to finish
+        toast.classList.add("toast-exit");
+        setTimeout(() => toast.remove(), 400);
       }, 5000);
     }
   });
